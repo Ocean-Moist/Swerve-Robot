@@ -13,8 +13,7 @@ import frc.robot.subsystems.Drivetrain;
 import static frc.robot.subsystems.Drivetrain.MAX_ANGULAR_SPEED;
 import static frc.robot.subsystems.Drivetrain.MAX_SPEED;
 
-public class Robot extends TimedRobot
-{
+public class Robot extends TimedRobot {
     private final XboxController controller = new XboxController(0);
     private final Drivetrain swerve = new Drivetrain();
 

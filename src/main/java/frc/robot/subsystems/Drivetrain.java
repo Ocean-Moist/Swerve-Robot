@@ -21,37 +21,89 @@ import static frc.robot.Constants.DriveConstants.*;
  * Represents a swerve drive style drivetrain.
  */
 public class Drivetrain extends SubsystemBase {
-    public static final double MAX_SPEED = 3.0*Constants.DriveConstants.speedScale; // 3 meters per second
-    public static final double MAX_ANGULAR_SPEED = Math.PI*Constants.DriveConstants.speedScale; // 1/2 rotation per second
+    public static final double MAX_SPEED = 3.0 * Constants.DriveConstants.speedScale; // 3 meters per second
+    public static final double MAX_ANGULAR_SPEED = Math.PI * Constants.DriveConstants.speedScale; // 1/2 rotation per second
 
-    private final Translation2d frontLeftLocation = new Translation2d(0.381, 0.381);
+    private final Translation2d frontLeftLocation = new Translation2d(0.381, 0.381); // these are motor positions relative to the center of the bot (need to be changed)
     private final Translation2d frontRightLocation = new Translation2d(0.381, -0.381);
     private final Translation2d backLeftLocation = new Translation2d(-0.381, 0.381);
     private final Translation2d backRightLocation = new Translation2d(-0.381, -0.381);
 
-    private final SwerveModule frontLeft = new SwerveModule(frontLeftDrivePort, frontLeftTurnPort);
-    private final SwerveModule frontRight = new SwerveModule(frontRightDrivePort, frontRightTurnPort);
-    private final SwerveModule backLeft = new SwerveModule(backLeftDrivePort, backLeftTurnPort);
-    private final SwerveModule backRight = new SwerveModule(backRightDrivePort, backRightTurnPort);
+
+    private final SwerveModule frontLeft = new SwerveModule(frontLeftDrivePort, frontLeftTurnPort, frontLeftDriveEncoderPortA,
+            frontLeftDriveEncoderPortB,
+            frontLeftTurnEncoderPortA,
+            frontLeftTurnEncoderPortB);
+    private final SwerveModule frontRight = new SwerveModule(frontRightDrivePort, frontRightTurnPort, frontRightDriveEncoderPortA,
+            frontRightDriveEncoderPortB,
+            frontRightTurnEncoderPortA,
+            frontRightTurnEncoderPortB);
+    private final SwerveModule backRight = new SwerveModule(backRightDrivePort, backRightTurnPort, backRightDriveEncoderPortA,
+            backRightDriveEncoderPortB,
+            backRightTurnEncoderPortA,
+            backRightTurnEncoderPortB);
+    private final SwerveModule backLeft = new SwerveModule(backLeftDrivePort, backLeftTurnPort, backLeftDriveEncoderPortA,
+            backLeftDriveEncoderPortB,
+            backLeftTurnEncoderPortA,
+            backLeftTurnEncoderPortB);
+
 
     private final AnalogGyro gyro = new AnalogGyro(SPI.Port.kOnboardCS0.value);
 
-    private final SwerveDriveKinematics kinematics = new SwerveDriveKinematics(frontLeftLocation, frontRightLocation, backLeftLocation, backRightLocation);
+    private final SwerveDriveKinematics kinematics =
+            new SwerveDriveKinematics(
+                    frontLeftLocation, frontRightLocation, backLeftLocation, backRightLocation);
 
-    private final SwerveDriveOdometry odometry = new SwerveDriveOdometry(kinematics, getAngle());
+    private final SwerveDriveOdometry odometry =
+            new SwerveDriveOdometry(kinematics, gyro.getRotation2d());
 
-    public Drivetrain()
-    {
+
+    public Drivetrain() {
         gyro.reset();
     }
+
+    /**
+     * Resets the drive encoders to currently read a position of 0.
+     */
+    public void resetEncoders() {
+        frontLeft.resetEncoders();
+        backLeft.resetEncoders();
+        frontRight.resetEncoders();
+        backRight.resetEncoders();
+    }
+
+    /**
+     * Zeroes the heading of the robot.
+     */
+    public void zeroHeading() {
+        gyro.reset();
+    }
+
+    /**
+     * Returns the heading of the robot.
+     *
+     * @return the robot's heading in degrees, from -180 to 180
+     */
+    public double getHeading() {
+        return gyro.getRotation2d().getDegrees();
+    }
+
+    /**
+     * Returns the turn rate of the robot.
+     *
+     * @return The turn rate of the robot, in degrees per second
+     */
+    public double getTurnRate() {
+        return gyro.getRate() * (Constants.DriveConstants.kGyroReversed ? -1.0 : 1.0);
+    }
+
 
     /**
      * Returns the angle of the robot as a Rotation2d.
      *
      * @return The angle of the robot.
      */
-    public Rotation2d getAngle()
-    {
+    public Rotation2d getAngle() {
         // Negating the angle because WPILib gyros are CW positive.
         return Rotation2d.fromDegrees(-gyro.getAngle());
     }
@@ -64,8 +116,7 @@ public class Drivetrain extends SubsystemBase {
      * @param rot           Angular rate of the robot.
      * @param fieldRelative Whether the provided x and y speeds are relative to the field.
      */
-    public void drive(double xSpeed, double ySpeed, double rot, boolean fieldRelative)
-    {
+    public void drive(double xSpeed, double ySpeed, double rot, boolean fieldRelative) {
         var swerveModuleStates = kinematics.toSwerveModuleStates(
                 fieldRelative
                         ? ChassisSpeeds.fromFieldRelativeSpeeds(xSpeed, ySpeed, rot, getAngle())
@@ -78,11 +129,11 @@ public class Drivetrain extends SubsystemBase {
         backRight.setDesiredState(swerveModuleStates[3]);
     }
 
+
     /**
      * Updates the field relative position of the robot.
      */
-    public void updateOdometry()
-    {
+    public void updateOdometry() {
         odometry.update(
                 getAngle(),
                 frontLeft.getState(),
